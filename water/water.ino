@@ -12,10 +12,10 @@
 #define DIGITAL_INPUT_SENSOR1 3         // The digital input you attached your sensor 1.
 #define DIGITAL_INPUT_SENSOR2 4         // The digital input you attached your sensor 2.
 
-#define DIGITAL_INPUT_SENSOR1_INC 14       // The digital input increasing counter 1.
-#define DIGITAL_INPUT_SENSOR1_DEC 15       // The digital input decreasing counter 1.
-#define DIGITAL_INPUT_SENSOR2_INC 16       // The digital input increasing counter 2.
-#define DIGITAL_INPUT_SENSOR2_DEC 17       // The digital input decreasing counter 2.
+#define DIGITAL_INPUT_SENSOR1_INC 14    // The digital input increasing counter 1.
+#define DIGITAL_INPUT_SENSOR1_DEC 15    // The digital input decreasing counter 1.
+#define DIGITAL_INPUT_SENSOR2_INC 16    // The digital input increasing counter 2.
+#define DIGITAL_INPUT_SENSOR2_DEC 17    // The digital input decreasing counter 2.
 
 #define PULSE_FACTOR 1000               // Number of blinks per m3 of your meter (One rotation/liter)
 
@@ -36,30 +36,25 @@ MyMessage flowMsg2(CHILD_ID2, V_FLOW);
 MyMessage volumeMsg2(CHILD_ID2, V_VOLUME);
 MyMessage lastCounterMsg2(CHILD_ID2, V_VAR1);
 
-double ppl = ((double)PULSE_FACTOR) / 1000;      // Pulses per liter
-
 uint32_t lastSend = 0;
+bool started = false; // Avoid pulse at startup
 
 volatile uint32_t pulseCount1 = 0;
 volatile uint32_t lastBlink1 = 0;
+volatile uint32_t lastPulse1 = 0;
 volatile double flow1 = 0;
-bool pcReceived1 = false;
-bool startup1 = true;
-uint32_t oldPulseCount1 = 0;
 double oldflow1 = 0;
-double oldvolume1 = 0;
-uint32_t lastPulse1 = 0;
+uint32_t oldPulseCount1 = 0;
+bool pcReceived1 = false;
 Debouncer debouncer1(DIGITAL_INPUT_SENSOR1, DEBOUNCE);
 
 volatile uint32_t pulseCount2 = 0;
 volatile uint32_t lastBlink2 = 0;
+volatile uint32_t lastPulse2 = 0;
 volatile double flow2 = 0;
-bool pcReceived2 = false;
-bool startup2 = true;
-uint32_t oldPulseCount2 = 0;
 double oldflow2 = 0;
-double oldvolume2 = 0;
-uint32_t lastPulse2 = 0;
+uint32_t oldPulseCount2 = 0;
+bool pcReceived2 = false;
 Debouncer debouncer2(DIGITAL_INPUT_SENSOR2, DEBOUNCE);
 
 Debouncer debouncer3(DIGITAL_INPUT_SENSOR1_INC, DEBOUNCE);
@@ -69,11 +64,8 @@ Debouncer debouncer6(DIGITAL_INPUT_SENSOR2_DEC, DEBOUNCE);
 
 void onPulse1()
 {
-  if (startup1)
+  if (started == false)
   {
-    Serial.println("pulse1 startup : ignored");
-    flow1=0;
-    startup1 = false;
     return;
   }
 
@@ -84,7 +76,7 @@ void onPulse1()
 
   if (interval != 0) {
     lastPulse1 = millis();
-    flow1 = (60000000.0 / interval) / ppl;
+    flow1 = (60000000.0 / interval);
   }
   lastBlink1 = newBlink;
 
@@ -94,11 +86,8 @@ void onPulse1()
 
 void onPulse2()
 {
-  if (startup2)
+  if (started == false)
   {
-    Serial.println("pulse2 startup : ignored");
-    flow2=0;
-    startup2 = false;
     return;
   }
 
@@ -109,7 +98,7 @@ void onPulse2()
 
   if (interval != 0) {
     lastPulse2 = millis();
-    flow2 = (60000000.0 / interval) / ppl;
+    flow2 = (60000000.0 / interval);
   }
   lastBlink2 = newBlink;
 
@@ -186,8 +175,11 @@ void loop()
 
   uint32_t currentTime = millis();
 
-  // Only send values at a maximum frequency or woken up from sleep
+  // Only send values at a maximum frequency
   if (currentTime - lastSend > SEND_FREQUENCY) {
+
+    started = true;
+
     lastSend = currentTime;
 
     if (!pcReceived1) {
@@ -247,14 +239,10 @@ void loop()
       send(lastCounterMsg1.set(pulseCount1));                  // Send  pulsecount value to gw in VAR1
 
       double volume1 = ((double)pulseCount1 / ((double)PULSE_FACTOR));
-      if (volume1 != oldvolume1) {
-        oldvolume1 = volume1;
+      Serial.print("volume1:");
+      Serial.println(volume1, 3);
 
-        Serial.print("volume1:");
-        Serial.println(volume1, 3);
-
-        send(volumeMsg1.set(volume1, 3));               // Send volume value to gw
-      }
+      send(volumeMsg1.set(volume1, 3));               // Send volume value to gw
     }
 
     if (pulseCount2 != oldPulseCount2) {
@@ -266,14 +254,10 @@ void loop()
       send(lastCounterMsg2.set(pulseCount2));                  // Send  pulsecount value to gw in VAR1
 
       double volume2 = ((double)pulseCount2 / ((double)PULSE_FACTOR));
-      if (volume2 != oldvolume2) {
-        oldvolume2 = volume2;
+      Serial.print("volume2:");
+      Serial.println(volume2, 3);
 
-        Serial.print("volume2:");
-        Serial.println(volume2, 3);
-
-        send(volumeMsg2.set(volume2, 3));               // Send volume value to gw
-      }
+      send(volumeMsg2.set(volume2, 3));               // Send volume value to gw
     }
   }
 }

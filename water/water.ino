@@ -26,7 +26,7 @@
 #define CHILD_ID1 1                     // Id of the sensor child
 #define CHILD_ID2 2                     // Id of the sensor child
 
-uint32_t SEND_FREQUENCY = 30000;        // Minimum time between send (in milliseconds). We don't want to spam the gateway.
+uint32_t SEND_FREQUENCY = 15000;        // Minimum time between send (in milliseconds). We don't want to spam the gateway.
 
 MyMessage flowMsg1(CHILD_ID1, V_FLOW);
 MyMessage volumeMsg1(CHILD_ID1, V_VOLUME);
@@ -69,8 +69,6 @@ void onPulse1()
     return;
   }
 
-  Serial.println("pulse1");
-
   uint32_t newBlink = micros();
   uint32_t interval = newBlink - lastBlink1;
 
@@ -90,8 +88,6 @@ void onPulse2()
   {
     return;
   }
-
-  Serial.println("pulse2");
 
   uint32_t newBlink = micros();
   uint32_t interval = newBlink - lastBlink2;
@@ -134,22 +130,18 @@ void setup()
   });
 
   debouncer3.subscribe(Debouncer::Edge::FALL, [](const int state) {
-    Serial.println("pulse1 inc");
     pulseCount1++;
   });
 
   debouncer4.subscribe(Debouncer::Edge::FALL, [](const int state) {
-    Serial.println("pulse1 dec");
     pulseCount1--;
   });
 
   debouncer5.subscribe(Debouncer::Edge::FALL, [](const int state) {
-    Serial.println("pulse2 inc");
     pulseCount2++;
   });
 
   debouncer6.subscribe(Debouncer::Edge::FALL, [](const int state) {
-    Serial.println("pulse2 dec");
     pulseCount2--;
   });
 }
@@ -194,6 +186,35 @@ void loop()
       return;
     }
 
+    // Recompute the flow
+    if (flow1 != 0) {
+      uint32_t newBlink = micros();
+      uint32_t interval = newBlink - lastBlink1;
+
+      if (interval != 0) {
+        flow1 = (60000000.0 / interval);
+      }
+    }
+
+    if (flow2 != 0) {
+      uint32_t newBlink = micros();
+      uint32_t interval = newBlink - lastBlink2;
+
+      if (interval != 0) {
+        flow2 = (60000000.0 / interval);
+      }
+    }
+
+    // No Pulse count received in 60 seconds -> flow is 0
+    if (currentTime - lastPulse1 > 60000) {
+      flow1 = 0;
+    }
+
+    if (currentTime - lastPulse2 > 60000) {
+      flow2 = 0;
+    }
+
+    // Send the flow
     if (flow1 != oldflow1) {
       oldflow1 = flow1;
 
@@ -218,15 +239,6 @@ void loop()
       if (flow2 < ((uint32_t)MAX_FLOW)) {
         send(flowMsg2.set(flow2, 2));                   // Send flow value to gw
       }
-    }
-
-    // No Pulse count received in 2min
-    if (currentTime - lastPulse1 > 120000) {
-      flow1 = 0;
-    }
-
-    if (currentTime - lastPulse2 > 120000) {
-      flow2 = 0;
     }
 
     // Pulse count has changed

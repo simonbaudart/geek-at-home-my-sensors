@@ -1,6 +1,7 @@
 {
-    "configuration": "cpu=atmega328",
+    "configuration": "cpu=atmega328old",
     "board": "arduino:avr:nano",
     "programmer": "arduino:avrispmkii",
-    "sketch": "water\\water.ino"
+    "sketch": "water\\water.ino",
+    "port": "COM5"
 }

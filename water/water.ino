@@ -1,52 +1,8 @@
-/*
-   The MySensors Arduino library handles the wireless radio link and protocol
-   between your home built sensors/actuators and HA controller of choice.
-   The sensors forms a self healing radio network with optional repeaters. Each
-   repeater and gateway builds a routing tables in EEPROM which keeps track of the
-   network topology allowing messages to be routed to nodes.
-
-   Created by Henrik Ekblad <henrik.ekblad@mysensors.org>
-   Copyright (C) 2013-2019 Sensnology AB
-   Full contributor list: https://github.com/mysensors/MySensors/graphs/contributors
-
-   Documentation: http://www.mysensors.org
-   Support Forum: http://forum.mysensors.org
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   version 2 as published by the Free Software Foundation.
-
- *******************************
-
-   REVISION HISTORY
-   Version 1.0 - Henrik Ekblad
-   Version 1.1 - GizMoCuz
-
-   DESCRIPTION
-   Use this sensor to measure volume and flow of your house water meter.
-   You need to set the correct pulsefactor of your meter (pulses per m3).
-   The sensor starts by fetching current volume reading from gateway (VAR 1).
-   Reports both volume and flow back to gateway.
-
-   Unfortunately millis() won't increment when the Arduino is in
-   sleepmode. So we cannot make this sensor sleep if we also want
-   to calculate/report flow.
-   http://www.mysensors.org/build/pulse_water
-*/
-
 // Enable debug prints to serial monitor
 #define MY_DEBUG
 
 // Enable and select radio type attached
 #define MY_RADIO_RF24
-//#define MY_RADIO_NRF5_ESB
-//#define MY_RADIO_RFM69
-//#define MY_RADIO_RFM95
-
-// Enable signature
-//#define MY_SIGNING_SOFT
-//#define MY_SIGNING_SOFT_RANDOMSEED_PIN 7
-//#define MY_SIGNING_REQUEST_SIGNATURES
 
 #define MY_NODE_ID 1
 
@@ -56,22 +12,21 @@
 #define DIGITAL_INPUT_SENSOR1 3         // The digital input you attached your sensor 1.
 #define DIGITAL_INPUT_SENSOR2 4         // The digital input you attached your sensor 2.
 
-#define DIGITAL_INPUT_SENSOR1A 14       // The digital input you attached your sensor 2.
-#define DIGITAL_INPUT_SENSOR1R 15       // The digital input you attached your sensor 2.
-#define DIGITAL_INPUT_SENSOR2A 16       // The digital input you attached your sensor 2.
-#define DIGITAL_INPUT_SENSOR2R 17       // The digital input you attached your sensor 2.
+#define DIGITAL_INPUT_SENSOR1_INC 14       // The digital input increasing counter 1.
+#define DIGITAL_INPUT_SENSOR1_DEC 15       // The digital input decreasing counter 1.
+#define DIGITAL_INPUT_SENSOR2_INC 16       // The digital input increasing counter 2.
+#define DIGITAL_INPUT_SENSOR2_DEC 17       // The digital input decreasing counter 2.
 
-#define PULSE_FACTOR 1000                       // Number of blinks per m3 of your meter (One rotation/liter)
+#define PULSE_FACTOR 1000               // Number of blinks per m3 of your meter (One rotation/liter)
 
-#define MAX_FLOW 40                             // Max flow (l/min) value to report. This filters outliers.
+#define MAX_FLOW 40                     // Max flow (l/min) value to report. This filters outliers.
 
-#define DEBOUNCE 50 							              // Sometimes we get interrupt on RISING,  50ms debounce ( max 2000 l/min at 1ppl)
+#define DEBOUNCE 50 							      // Sometimes we get interrupt on RISING,  50ms debounce ( max 2000 l/min at 1ppl)
 
-#define CHILD_ID1 1                              // Id of the sensor child
-#define CHILD_ID2 2                              // Id of the sensor child
+#define CHILD_ID1 1                     // Id of the sensor child
+#define CHILD_ID2 2                     // Id of the sensor child
 
-uint32_t SEND_FREQUENCY =
-  30000;           // Minimum time between send (in milliseconds). We don't want to spam the gateway.
+uint32_t SEND_FREQUENCY = 30000;        // Minimum time between send (in milliseconds). We don't want to spam the gateway.
 
 MyMessage flowMsg1(CHILD_ID1, V_FLOW);
 MyMessage volumeMsg1(CHILD_ID1, V_VOLUME);
@@ -107,10 +62,10 @@ double oldvolume2 = 0;
 uint32_t lastPulse2 = 0;
 Debouncer debouncer2(DIGITAL_INPUT_SENSOR2, DEBOUNCE);
 
-Debouncer debouncer3(DIGITAL_INPUT_SENSOR1A, DEBOUNCE);
-Debouncer debouncer4(DIGITAL_INPUT_SENSOR1R, DEBOUNCE);
-Debouncer debouncer5(DIGITAL_INPUT_SENSOR2A, DEBOUNCE);
-Debouncer debouncer6(DIGITAL_INPUT_SENSOR2R, DEBOUNCE);
+Debouncer debouncer3(DIGITAL_INPUT_SENSOR1_INC, DEBOUNCE);
+Debouncer debouncer4(DIGITAL_INPUT_SENSOR1_DEC, DEBOUNCE);
+Debouncer debouncer5(DIGITAL_INPUT_SENSOR2_INC, DEBOUNCE);
+Debouncer debouncer6(DIGITAL_INPUT_SENSOR2_DEC, DEBOUNCE);
 
 void onPulse1()
 {
@@ -167,10 +122,10 @@ void setup()
   // initialize our digital pins internal pullup resistor so one pulse switches from high to low (less distortion)
   pinMode(DIGITAL_INPUT_SENSOR1, INPUT_PULLUP);
   pinMode(DIGITAL_INPUT_SENSOR2, INPUT_PULLUP);
-  pinMode(DIGITAL_INPUT_SENSOR1A, INPUT_PULLUP);
-  pinMode(DIGITAL_INPUT_SENSOR1R, INPUT_PULLUP);
-  pinMode(DIGITAL_INPUT_SENSOR2A, INPUT_PULLUP);
-  pinMode(DIGITAL_INPUT_SENSOR2R, INPUT_PULLUP);
+  pinMode(DIGITAL_INPUT_SENSOR1_INC, INPUT_PULLUP);
+  pinMode(DIGITAL_INPUT_SENSOR1_DEC, INPUT_PULLUP);
+  pinMode(DIGITAL_INPUT_SENSOR2_INC, INPUT_PULLUP);
+  pinMode(DIGITAL_INPUT_SENSOR2_DEC, INPUT_PULLUP);
 
   pulseCount1 = oldPulseCount1 = 0;
   pulseCount2 = oldPulseCount2 = 0;
@@ -213,7 +168,7 @@ void setup()
 void presentation()
 {
   // Send the sketch version information to the gateway and Controller
-  sendSketchInfo("Water Meter", "1.1");
+  sendSketchInfo("Water Meter", "1.2");
 
   // Register this device as Water flow sensor
   present(CHILD_ID1, S_WATER);
